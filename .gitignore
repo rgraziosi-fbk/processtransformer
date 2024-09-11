@@ -3,4 +3,5 @@
 datasets/
 models/
 results/
+generated/
 __pycache__/
