@@ -5,6 +5,10 @@ from processtransformer import constants
 from processtransformer.data import loader
 from processtransformer.models import transformer
 
+# constants
+PADDING = '[PAD]'
+EOT = '[EOT]'
+
 # config
 NUM_TO_GENERATE = 10
 
@@ -29,10 +33,10 @@ for i in range(NUM_TO_GENERATE):
   print(f'\n\nGenerating trace {i+1}...')
 
   start_of_trace = np.zeros((1, max_case_length))
-  start_of_trace[0, -1] = x_word_dict['assign-seriousness']
+  start_of_trace[0, -1] = x_word_dict[EOT]
   trace = start_of_trace
 
-  for j in range(max_case_length-1):
+  for j in range(max_case_length):
     # predict next activity
     next_activity_pred = model.predict(trace, verbose=0)
     next_activity = tf.random.categorical(next_activity_pred, 1).numpy()[0][0] # random sampling
@@ -44,11 +48,11 @@ for i in range(NUM_TO_GENERATE):
     trace[0, -1] = x_word_dict[next_activity_name]
 
     # stop on EOT
-    if next_activity_name == 'closed':
+    if next_activity_name == EOT:
       break
 
   # print trace
   for activity in trace[0]:
-    if inverse_x_word_dict[activity] == '[PAD]': continue
+    if inverse_x_word_dict[activity] == PADDING: continue
 
     print(inverse_x_word_dict[activity], end=', ')

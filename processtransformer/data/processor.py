@@ -8,7 +8,7 @@ from multiprocessing import  Pool
 from ..constants import Task
 
 class LogsDataProcessor:
-    def __init__(self, name, filepath, columns, dir_path = "./datasets/processed", pool = 1):
+    def __init__(self, name, filepath, columns, dir_path = "./datasets/processed", pool = 1, insert_eot = False):
         """Provides support for processing raw logs.
         Args:
             name: str: Dataset name
@@ -16,6 +16,7 @@ class LogsDataProcessor:
             columns: list: name of column names
             dir_path:  str: Path to directory for saving the processed dataset
             pool: Number of CPUs (processes) to be used for data processing
+            insert_eot: bool: whether to add [EOT] activity to the start and end of each trace
         """
         self._name = name
         self._filepath = filepath
@@ -25,6 +26,7 @@ class LogsDataProcessor:
             os.makedirs(f"{dir_path}/{self._name}/processed")
         self._dir_path = f"{self._dir_path}/{self._name}/processed"
         self._pool = pool
+        self._insert_eot = insert_eot
 
     def _load_df(self, sort_temporally = False):
         df = pd.read_csv(self._filepath)
@@ -42,6 +44,10 @@ class LogsDataProcessor:
     def _extract_logs_metadata(self, df):
         keys = ["[PAD]", "[UNK]"]
         activities = list(df["concept:name"].unique())
+
+        if self._insert_eot:
+            activities.insert(0, "[EOT]")
+        
         keys.extend(activities)
         val = range(len(keys))
 
@@ -61,6 +67,11 @@ class LogsDataProcessor:
         unique_cases = df[case_id].unique()
         for _, case in enumerate(unique_cases):
             act = df[df[case_id] == case][case_name].to_list()
+            
+            if self._insert_eot:
+                act.insert(0, "[EOT]")
+                act.append("[EOT]")
+                
             for i in range(len(act) - 1):
                 prefix = np.where(i == 0, act[0], " ".join(act[:i+1]))        
                 next_act = act[i+1]

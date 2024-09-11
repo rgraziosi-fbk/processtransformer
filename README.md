@@ -30,7 +30,7 @@ We provide the necessary code to use ProcessTransformer with the event logs of y
 For the data preprocessing,  run:
 
 ```python
-python data_processing.py --dataset=helpdesk --task=next_activity
+python data_processing.py --dataset=helpdesk --task=next_activity --insert_eot
 python data_processing.py --dataset=helpdesk --task=next_time
 python data_processing.py --dataset=helpdesk --task=remaining_time
 ```

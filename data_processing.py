@@ -35,6 +35,11 @@ parser.add_argument("--sort_temporally",
     default=False, 
     help="sort cases by timestamp")
 
+parser.add_argument("--insert_eot", 
+    action="store_true",
+    default=False, 
+    help="insert end of trace token")
+
 args = parser.parse_args()
 
 if __name__ == "__main__": 
@@ -43,7 +48,7 @@ if __name__ == "__main__":
     data_processor = LogsDataProcessor(name=args.dataset, 
         filepath=args.raw_log_file, 
         columns = ["Case ID", "Activity", "Complete Timestamp"], #["case:concept:name", "concept:name", "time:timestamp"], 
-        dir_path=args.dir_path, pool = 1) #changed from 4 to 1
+        dir_path=args.dir_path, pool = 1, insert_eot=args.insert_eot)
     data_processor.process_logs(task=args.task, sort_temporally= args.sort_temporally)
     end = time.time()
     print(f"Total processing time: {end - start}")
