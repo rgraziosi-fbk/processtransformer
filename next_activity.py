@@ -16,7 +16,7 @@ from processtransformer.models import transformer
 
 parser = argparse.ArgumentParser(description="Process Transformer - Next Activity Prediction.")
 
-parser.add_argument("--dataset", required=True, type=str, help="dataset name")
+parser.add_argument("--dataset", default="helpdesk", required=True, type=str, help="dataset name")
 
 parser.add_argument("--model_dir", default="./models", type=str, help="model directory")
 

@@ -27,7 +27,7 @@ parser.add_argument("--raw_log_file",
 
 parser.add_argument("--task", 
     type=constants.Task, 
-    default=constants.Task.REMAINING_TIME, 
+    default=constants.Task.NEXT_ACTIVITY, 
     help="task name")
 
 parser.add_argument("--sort_temporally", 

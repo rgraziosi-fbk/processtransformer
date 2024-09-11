@@ -1,0 +1,6 @@
+.DS_Store
+.vscode/
+datasets/
+models/
+results/
+__pycache__/

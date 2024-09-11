@@ -34,8 +34,7 @@ class LogsDataProcessor:
         df["concept:name"] = df["concept:name"].str.lower()
         df["concept:name"] = df["concept:name"].str.replace(" ", "-")
         df["time:timestamp"] = df["time:timestamp"].str.replace("/", "-")
-        df["time:timestamp"]= pd.to_datetime(df["time:timestamp"],  
-            dayfirst=True).map(lambda x: x.strftime("%Y-%m-%d %H:%M:%S"))
+        df["time:timestamp"]= pd.to_datetime(df["time:timestamp"]).map(lambda x: x.strftime("%Y-%m-%d %H:%M:%S"))
         if sort_temporally:
             df.sort_values(by = ["time:timestamp"], inplace = True)
         return df
