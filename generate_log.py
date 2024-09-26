@@ -1,4 +1,5 @@
 import os
+import copy
 import datetime
 import pm4py
 import pandas as pd
@@ -19,85 +20,149 @@ ACTIVITY_KEY = 'concept:name'
 TIMESTAMP_KEY = 'time:timestamp'
 
 # config
-MODEL_CHECKPOINT_PATH = os.path.join('models', 'helpdesk', 'next_activity_ckpt')
+DATASET_NAME = 'sepsis'
 
-NUM_TRACES = 4580
+NEXT_ACTIVITY_MODEL_PATH = os.path.join('models', DATASET_NAME, 'next_activity_ckpt')
+NEXT_TIME_MODEL_PATH = os.path.join('models', DATASET_NAME, 'next_time_ckpt')
+
+NUM_GENERATIONS = 10
+NUM_TRACES = 157
 OUTPUT_PATH = os.path.join('generated')
 
+START_TIMESTAMP = datetime.datetime.strptime('17.09.2024 17:02:38', '%d.%m.%Y %H:%M:%S')
+# START_TIMESTAMP = datetime.datetime.now()
 
 
 # load data
-data_loader = loader.LogsDataLoader(name='helpdesk', dir_path='./datasets')
+next_activity_data_loader = loader.LogsDataLoader(name=DATASET_NAME, dir_path='./datasets/next_activity')
+next_time_data_loader = loader.LogsDataLoader(name=DATASET_NAME, dir_path='./datasets/next_time')
 
-_, _, x_word_dict, y_word_dict, max_case_length, vocab_size, num_output = data_loader.load_data(task=constants.Task.NEXT_ACTIVITY)
+_, _, x_word_dict, y_word_dict, max_case_length, vocab_size, num_output = next_activity_data_loader.load_data(task=constants.Task.NEXT_ACTIVITY)
+new_activity_name_to_original_activity_name = next_activity_data_loader.get_new_activity_name_to_original_activity_name()
 inverse_x_word_dict = { i: a for a, i in x_word_dict.items() }
 inverse_y_word_dict = { i: a for a, i in y_word_dict.items() }
 
-# load model
-model = transformer.get_next_activity_model(
+train_df, _, _, _, _, _, _ = next_time_data_loader.load_data(task=constants.Task.NEXT_TIME)
+_, _, _, time_scaler, y_scaler = next_time_data_loader.prepare_data_next_time(train_df, x_word_dict, max_case_length)
+
+# _, _, x_word_dict_nt, y_word_dict_nt, max_case_length_nt, vocab_size_nt, num_output_nt = next_time_data_loader.load_data(task=constants.Task.NEXT_TIME)
+# inverse_x_word_dict_nt = { i: a for a, i in x_word_dict_nt.items() }
+# inverse_y_word_dict_nt = { i: a for a, i in y_word_dict_nt.items() }
+
+# load models
+next_activity_model = transformer.get_next_activity_model(
   max_case_length=max_case_length, 
   vocab_size=vocab_size,
-  output_dim=num_output
+  output_dim=num_output,
 )
-model.load_weights(MODEL_CHECKPOINT_PATH).expect_partial() # load weights, silence warnings
+next_activity_model.load_weights(NEXT_ACTIVITY_MODEL_PATH).expect_partial() # load weights, silence warnings
 
-# generate
-generated_data = []
+next_time_model = transformer.get_next_time_model(
+  max_case_length=max_case_length,
+  vocab_size=vocab_size,
+)
+next_time_model.load_weights(NEXT_TIME_MODEL_PATH).expect_partial()
 
-for i in tqdm(range(NUM_TRACES), desc='Generating traces'):
-  error = False
+for num_gen in range(NUM_GENERATIONS):
+  print(f'Generation #{num_gen+1}')
 
-  start_of_trace = np.zeros((1, max_case_length))
-  start_of_trace[0, -1] = x_word_dict[EOT]
-  trace = start_of_trace
+  # generate
+  generated_data = []
 
-  for j in range(max_case_length):
-    # predict next activity
-    try:
-      next_activity_pred = model.predict(trace, verbose=0)
-    except Exception as e:
-      print(f"An error occurred during model prediction, while generating trace {i}: {e}")
-      error = True
-      break
-    
-    next_activity = tf.random.categorical(next_activity_pred, 1).numpy()[0][0] # random sampling
-    # next_activity = np.argmax(next_activity_pred[0]) # argmax
-    next_activity_name = inverse_y_word_dict[next_activity]
+  for i in tqdm(range(NUM_TRACES), desc='Generating traces'):
+    error = False
 
-    # append next activity to trace
-    trace = np.roll(trace, -1, axis=1)
-    trace[0, -1] = x_word_dict[next_activity_name]
+    start_of_trace = np.zeros((1, max_case_length))
+    start_of_trace[0, -1] = x_word_dict[EOT]
+    trace = start_of_trace
+    time = np.array([[0.0, 0.0, 0.0]], dtype=np.float32)
+    times = []
+    recent_time_memory = [0.0, 0.0]
 
-    # stop on EOT
-    if next_activity_name == EOT:
-      break
+    for j in range(max_case_length):
+      # predict next activity
+      try:
+        next_activity_pred = next_activity_model.predict(trace, verbose=0)
+      except Exception as e:
+        print(f"An error occurred during next_activity_model prediction, while generating trace {i}: {e}")
+        error = True
+        break
+      
+      next_activity = tf.random.categorical(next_activity_pred, 1).numpy()[0][0] # random sampling
+      # next_activity = np.argmax(next_activity_pred[0]) # argmax
+      next_activity_name = inverse_y_word_dict[next_activity]
 
-  # if there was an error in the generation process, skip this trace and retry
-  if error:
-    i -= 1
-    continue
+      # append next activity to trace
+      trace = np.roll(trace, -1, axis=1)
+      trace[0, -1] = x_word_dict[next_activity_name]
 
-  # add generated trace to generated_data
-  for activity in trace[0]:
-    if inverse_x_word_dict[activity] == PADDING: continue
-    if inverse_x_word_dict[activity] == EOT: continue
+      # stop on EOT
+      if next_activity_name == EOT:
+        break
 
-    row = {
-      TRACE_KEY: f'GEN-{i}',
-      ACTIVITY_KEY: inverse_x_word_dict[activity],
-      TIMESTAMP_KEY: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    }
+      # predict next time
+      try:
+        time_input = time_scaler.transform(time).astype(np.float32)
 
-    generated_data.append(row)
+        next_time_pred = next_time_model.predict([trace, time_input], verbose=0)
+        next_time_pred = y_scaler.inverse_transform(next_time_pred)
+        next_time_pred = int(next_time_pred)
+        next_time_pred = 0 if next_time_pred < 0 else next_time_pred
 
+        # keep two latest time_pred in memory
+        recent_time_memory[0] = recent_time_memory[1]
+        recent_time_memory[1] = next_time_pred
 
-print('\n\n')
+        # update time based on next_time_pred
+        # time = [time_passed, recent_time, latest_time]
+        # time_passed = sum of all previous next_time_pred
+        # recent_time = sum of previous 2 next_time_pred
+        # latest_time = previous next_time_pred
 
-# save generated data to log
-generated_log = pd.DataFrame(generated_data, columns=[TRACE_KEY, ACTIVITY_KEY, TIMESTAMP_KEY])
-generated_log[TIMESTAMP_KEY] = pd.to_datetime(generated_log[TIMESTAMP_KEY])
-generated_log[TRACE_KEY] = generated_log[TRACE_KEY].astype(str)
+        time[0][0] += next_time_pred
+        time[0][1] = sum(recent_time_memory)
+        time[0][2] = next_time_pred
 
-generated_log_path = os.path.join(OUTPUT_PATH, 'generated.xes')
-pm4py.write_xes(generated_log, generated_log_path, case_id_key=TRACE_KEY)
-generated_log.to_csv(generated_log_path.replace('.xes', '.csv'), sep=',', index=False)
+        times.append(copy.deepcopy(time))
+        
+      except Exception as e:
+        print(f"An error occurred during next_time_model prediction, while generating trace {i}: {e}")
+        error = True
+        break
+
+    # if there was an error in the generation process, skip this trace and retry
+    if error:
+      i -= 1
+      continue
+
+    activity_number = 0
+    # add generated trace to generated_data
+    for activity in trace[0]:
+      if inverse_x_word_dict[activity] == PADDING: continue
+      if inverse_x_word_dict[activity] == EOT: continue
+
+      activity_number += 1
+
+      timestamp = START_TIMESTAMP + datetime.timedelta(hours=int(times[activity_number-1][0][0]))
+
+      row = {
+        TRACE_KEY: f'GEN-{i}',
+        'case:concept:name': f'GEN-{i}',
+        ACTIVITY_KEY: new_activity_name_to_original_activity_name[inverse_x_word_dict[activity]],
+        'concept:name': new_activity_name_to_original_activity_name[inverse_x_word_dict[activity]],
+        TIMESTAMP_KEY: timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        'time:timestamp': timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+      }
+
+      generated_data.append(row)
+
+  # save generated data to log
+  generated_log = pd.DataFrame(generated_data, columns=[TRACE_KEY, ACTIVITY_KEY, TIMESTAMP_KEY])
+  generated_log[TIMESTAMP_KEY] = pd.to_datetime(generated_log[TIMESTAMP_KEY])
+  generated_log[TRACE_KEY] = generated_log[TRACE_KEY].astype(str)
+
+  generated_log_path = os.path.join(OUTPUT_PATH, f'gen{num_gen+1}.xes')
+  pm4py.write_xes(generated_log, generated_log_path, case_id_key=TRACE_KEY)
+  generated_log.to_csv(generated_log_path.replace('.xes', '.csv'), sep=';', index=False)
+
+  print('\n\n')

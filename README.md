@@ -30,15 +30,15 @@ We provide the necessary code to use ProcessTransformer with the event logs of y
 For the data preprocessing,  run:
 
 ```python
-python data_processing.py --dataset=helpdesk --task=next_activity --insert_eot
-python data_processing.py --dataset=helpdesk --task=next_time
+python data_processing.py --dataset=sepsis --dir_path=./datasets/next_activity --raw_log_file=./datasets/sepsis/sepsis.csv --task=next_activity --insert_eot
+python data_processing.py --dataset=helpdesk --dir_path=./datasets/next_time --task=next_time --insert_eot
 python data_processing.py --dataset=helpdesk --task=remaining_time
 ```
 To train and evaluate the model, run:
 
 ```python
 python next_activity.py --dataset=helpdesk --epochs=100
-python next_time.py --dataset=helpdesk --epochs=100
+python next_time.py --dataset_dir=./datasets/next_time --dataset=helpdesk --epochs=100
 python remaining_time.py --dataset=helpdesk --epochs=100
 ```
 

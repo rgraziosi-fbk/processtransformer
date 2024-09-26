@@ -155,3 +155,9 @@ class LogsDataLoader:
             x_word_dict, y_word_dict, 
             max_case_length, vocab_size, 
             total_classes)
+
+    def get_new_activity_name_to_original_activity_name(self):
+        with open(f"{self._dir_path}/metadata.json", "r") as json_file:
+            metadata = json.load(json_file)
+        
+        return metadata["new_activity_name_to_original_activity_name"]

@@ -8,7 +8,7 @@ from multiprocessing import  Pool
 from ..constants import Task
 
 class LogsDataProcessor:
-    def __init__(self, name, filepath, columns, dir_path = "./datasets/processed", pool = 1, insert_eot = False):
+    def __init__(self, name, filepath, columns, dir_path = "./datasets/processed", pool = 1, csv_separator = ',', insert_eot = False):
         """Provides support for processing raw logs.
         Args:
             name: str: Dataset name
@@ -27,12 +27,18 @@ class LogsDataProcessor:
         self._dir_path = f"{self._dir_path}/{self._name}/processed"
         self._pool = pool
         self._insert_eot = insert_eot
+        self._csv_separator = csv_separator
+        self._new_activity_name_to_original_activity_name = dict()
 
     def _load_df(self, sort_temporally = False):
-        df = pd.read_csv(self._filepath)
+        df = pd.read_csv(self._filepath, sep=self._csv_separator)
         df = df[self._org_columns]
         df.columns = ["case:concept:name", 
             "concept:name", "time:timestamp"]
+        
+        # Create mapping from new activity name (lowercase, space replaced with dash, slash replaced with dash) to original activity name
+        self._new_activity_name_to_original_activity_name = dict(zip(df["concept:name"].str.lower().str.replace(" ", "-").str.replace("/", "-"), df["concept:name"]))
+
         df["concept:name"] = df["concept:name"].str.lower()
         df["concept:name"] = df["concept:name"].str.replace(" ", "-")
         df["time:timestamp"] = df["time:timestamp"].str.replace("/", "-")
@@ -55,6 +61,7 @@ class LogsDataProcessor:
         code_activity_normal = dict({"y_word_dict": dict(zip(activities, range(len(activities))))})
 
         coded_activity.update(code_activity_normal)
+        coded_activity.update({"new_activity_name_to_original_activity_name": self._new_activity_name_to_original_activity_name})
         coded_json = json.dumps(coded_activity)
         with open(f"{self._dir_path}/metadata.json", "w") as metadata_file:
             metadata_file.write(coded_json)
@@ -102,6 +109,11 @@ class LogsDataProcessor:
         for _, case in enumerate(unique_cases):
             act = df[df[case_id] == case][event_name].to_list()
             time = df[df[case_id] == case][event_time].str[:19].to_list()
+
+            if self._insert_eot:
+                act.insert(0, "[EOT]")
+                time.insert(0, time[0])
+
             time_passed = 0
             latest_diff = datetime.timedelta()
             recent_diff = datetime.timedelta()
@@ -114,15 +126,15 @@ class LogsDataProcessor:
                 if i > 1:
                     recent_diff = datetime.datetime.strptime(time[i], "%Y-%m-%d %H:%M:%S")- \
                                     datetime.datetime.strptime(time[i-2], "%Y-%m-%d %H:%M:%S")
-                latest_time = np.where(i == 0, 0, latest_diff.days)
-                recent_time = np.where(i <=1, 0, recent_diff.days)
+                latest_time = np.where(i == 0, 0, latest_diff.days*24)
+                recent_time = np.where(i <=1, 0, recent_diff.days*24)
                 time_passed = time_passed + latest_time
                 if i+1 < len(time):
                     next_time = datetime.datetime.strptime(time[i+1], "%Y-%m-%d %H:%M:%S") - \
                                 datetime.datetime.strptime(time[i], "%Y-%m-%d %H:%M:%S")
-                    next_time_days = str(int(next_time.days))
+                    next_time_days = str(int(next_time.days*24))
                 else:
-                    next_time_days = str(1)
+                    next_time_days = str(1*24)
                 processed_df.at[idx, "case_id"]  = case
                 processed_df.at[idx, "prefix"]  =  prefix
                 processed_df.at[idx, "k"] = i
