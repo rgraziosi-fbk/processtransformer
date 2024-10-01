@@ -21,6 +21,17 @@ Predictive business process monitoring focuses on predicting future characterist
 pip install processtransformer
 ```
 
+### Usage for trace generation
+
+1. In the `__main__` part of `data_processing.py`, verify that column_names and csv_separator are suited for the current dataset
+2. Preprocess data for next_activity task: `python data_processing.py --dataset=sepsis --dir_path=./datasets/next_activity --raw_log_file=./datasets/sepsis/sepsis.csv --task=next_activity --insert_eot --sort_temporally`. You'll find processed data in ./datasets/next_activity/{dataset-name}/processed
+3. Preprocess data for next_time task: `python data_processing.py --dataset=sepsis --dir_path=./datasets/next_time --raw_log_file=./datasets/sepsis/sepsis.csv --task=next_time --insert_eot --sort_temporally`. You'll find processed data in ./datasets/next_time/{dataset-name}/processed
+4. In `next_activity.py` and `next_time.py`, verify that parameters like validation_split, early stopping patience and min_delta suit your needs
+5. Train the next_activity model: `python next_activity.py --dataset_dir=./datasets/next_activity --dataset=sepsis --epochs=100`. You'll find trained model in ./models/{dataset-name}/next_activity_*
+6. Train the next_time model: `python next_time.py --dataset_dir=./datasets/next_time --dataset=sepsis --epochs=100`. You'll find trained model in ./models/{dataset-name}/next_time_*
+7. Ensure constants, DATASET_NAME, NUM_TRACES and START_TIMESTAMP are correctly configured in `generate_log.py`
+8. Generate logs: `python generate_log.py`
+
 
 ### Usage  
 We provide the necessary code to use ProcessTransformer with the event logs of your choice. We illustrate the examples using the helpdesk dataset. 
@@ -30,7 +41,7 @@ We provide the necessary code to use ProcessTransformer with the event logs of y
 For the data preprocessing,  run:
 
 ```python
-python data_processing.py --dataset=sepsis --dir_path=./datasets/next_activity --raw_log_file=./datasets/sepsis/sepsis.csv --task=next_activity --insert_eot
+python data_processing.py --dataset=sepsis --dir_path=./datasets/next_activity --raw_log_file=./datasets/sepsis/sepsis.csv --task=next_activity --insert_eot --sort_temporally
 python data_processing.py --dataset=helpdesk --dir_path=./datasets/next_time --task=next_time --insert_eot
 python data_processing.py --dataset=helpdesk --task=remaining_time
 ```
