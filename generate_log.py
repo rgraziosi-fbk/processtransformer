@@ -20,18 +20,19 @@ ACTIVITY_KEY = 'concept:name'
 TIMESTAMP_KEY = 'time:timestamp'
 
 # config
-DATASET_NAME = 'sepsis'
+DATASET_NAME = 'bpic2012_a'
 
 NEXT_ACTIVITY_MODEL_PATH = os.path.join('models', DATASET_NAME, 'next_activity_ckpt')
 NEXT_TIME_MODEL_PATH = os.path.join('models', DATASET_NAME, 'next_time_ckpt')
 
-NUM_GENERATIONS = 10
-NUM_TRACES = 157
+NUM_GENERATIONS = 4
+NUM_TRACES = 937
 OUTPUT_PATH = os.path.join('generated')
 
-START_TIMESTAMP = datetime.datetime.strptime('17.09.2024 17:02:38', '%d.%m.%Y %H:%M:%S')
+# Usually we want to start the generation from the first timestamp of the test log
+# or from the last timestamp of the train log
+START_TIMESTAMP = datetime.datetime.strptime('27.01.2012 16:58:46', '%d.%m.%Y %H:%M:%S')
 # START_TIMESTAMP = datetime.datetime.now()
-
 
 # load data
 next_activity_data_loader = loader.LogsDataLoader(name=DATASET_NAME, dir_path='./datasets/next_activity')
@@ -45,10 +46,6 @@ inverse_y_word_dict = { i: a for a, i in y_word_dict.items() }
 train_df, _, _, _, _, _, _ = next_time_data_loader.load_data(task=constants.Task.NEXT_TIME)
 _, _, _, time_scaler, y_scaler = next_time_data_loader.prepare_data_next_time(train_df, x_word_dict, max_case_length)
 
-# _, _, x_word_dict_nt, y_word_dict_nt, max_case_length_nt, vocab_size_nt, num_output_nt = next_time_data_loader.load_data(task=constants.Task.NEXT_TIME)
-# inverse_x_word_dict_nt = { i: a for a, i in x_word_dict_nt.items() }
-# inverse_y_word_dict_nt = { i: a for a, i in y_word_dict_nt.items() }
-
 # load models
 next_activity_model = transformer.get_next_activity_model(
   max_case_length=max_case_length, 
@@ -61,7 +58,7 @@ next_time_model = transformer.get_next_time_model(
   max_case_length=max_case_length,
   vocab_size=vocab_size,
 )
-next_time_model.load_weights(NEXT_TIME_MODEL_PATH).expect_partial()
+next_time_model.load_weights(NEXT_TIME_MODEL_PATH).expect_partial() # load weights, silence warnings
 
 for num_gen in range(NUM_GENERATIONS):
   print(f'Generation #{num_gen+1}')
@@ -90,6 +87,7 @@ for num_gen in range(NUM_GENERATIONS):
       
       next_activity = tf.random.categorical(next_activity_pred, 1).numpy()[0][0] # random sampling
       # next_activity = np.argmax(next_activity_pred[0]) # argmax
+
       next_activity_name = inverse_y_word_dict[next_activity]
 
       # append next activity to trace
@@ -165,4 +163,4 @@ for num_gen in range(NUM_GENERATIONS):
   pm4py.write_xes(generated_log, generated_log_path, case_id_key=TRACE_KEY)
   generated_log.to_csv(generated_log_path.replace('.xes', '.csv'), sep=';', index=False)
 
-  print('\n\n')
+  print('\n')
