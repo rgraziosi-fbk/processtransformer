@@ -75,13 +75,25 @@ if __name__ == "__main__":
     model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=model_path,
         save_weights_only=True,
-        monitor="sparse_categorical_accuracy",
+        monitor="val_sparse_categorical_accuracy",
         mode="max", save_best_only=True)
+    
+    early_stopping_callback = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=10,
+        min_delta=0,
+    )
 
-
-    transformer_model.fit(train_token_x, train_token_y, 
-        epochs=args.epochs, batch_size=args.batch_size, 
-        shuffle=True, verbose=2, callbacks=[model_checkpoint_callback])
+    transformer_model.fit(
+        train_token_x,
+        train_token_y, 
+        epochs=args.epochs,
+        batch_size=args.batch_size, 
+        shuffle=True,
+        verbose=2,
+        callbacks=[model_checkpoint_callback, early_stopping_callback],
+        validation_split=0.25 # 25% of 80% train set => 60% train, 20% val, 20% test
+    )
 
     # Evaluate over all the prefixes (k) and save the results
     k, accuracies,fscores, precisions, recalls = [],[],[],[],[]
