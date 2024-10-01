@@ -31,7 +31,7 @@ parser.add_argument("--task",
     help="task name")
 
 parser.add_argument("--sort_temporally", 
-    type=bool, 
+    action="store_true",
     default=False, 
     help="sort cases by timestamp")
 
