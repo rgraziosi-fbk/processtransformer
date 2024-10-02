@@ -4,6 +4,7 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
 import argparse
 import warnings
+import time
 warnings.filterwarnings("ignore")
 import numpy as np
 import pandas as pd
@@ -41,6 +42,8 @@ args = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
 if __name__ == "__main__":
+    start_time = time.time()
+
     # Create directories to save the results and models
     model_path = f"{args.model_dir}/{args.dataset}"
     if not os.path.exists(model_path):
@@ -94,6 +97,9 @@ if __name__ == "__main__":
         callbacks=[model_checkpoint_callback, early_stopping_callback],
         validation_split=0.25 # 25% of 80% train set => 60% train, 20% val, 20% test
     )
+
+    end_time = time.time()
+    print(f"Training time: {end_time - start_time} seconds")
 
     # Evaluate over all the prefixes (k) and save the results
     k, accuracies,fscores, precisions, recalls = [],[],[],[],[]
