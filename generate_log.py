@@ -25,13 +25,15 @@ DATASET_NAME = 'bpic2012_a'
 NEXT_ACTIVITY_MODEL_PATH = os.path.join('models', DATASET_NAME, 'next_activity_ckpt')
 NEXT_TIME_MODEL_PATH = os.path.join('models', DATASET_NAME, 'next_time_ckpt')
 
-NUM_GENERATIONS = 4
+NUM_GENERATIONS = 3
 NUM_TRACES = 937
 OUTPUT_PATH = os.path.join('generated')
 
 # Usually we want to start the generation from the first timestamp of the test log
 # or from the last timestamp of the train log
 START_TIMESTAMP = datetime.datetime.strptime('27.01.2012 16:58:46', '%d.%m.%Y %H:%M:%S')
+# sepsis = 26.10.2014 20:21:00
+# bpic2012_a = 27.01.2012 16:58:46
 # START_TIMESTAMP = datetime.datetime.now()
 
 # load data
@@ -141,7 +143,7 @@ for num_gen in range(NUM_GENERATIONS):
 
       activity_number += 1
 
-      timestamp = START_TIMESTAMP + datetime.timedelta(hours=int(times[activity_number-1][0][0]))
+      timestamp = START_TIMESTAMP + datetime.timedelta(days=int(times[activity_number-1][0][0]))
 
       row = {
         TRACE_KEY: f'GEN-{i}',

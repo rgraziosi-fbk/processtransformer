@@ -126,15 +126,15 @@ class LogsDataProcessor:
                 if i > 1:
                     recent_diff = datetime.datetime.strptime(time[i], "%Y-%m-%d %H:%M:%S")- \
                                     datetime.datetime.strptime(time[i-2], "%Y-%m-%d %H:%M:%S")
-                latest_time = np.where(i == 0, 0, latest_diff.days*24)
-                recent_time = np.where(i <=1, 0, recent_diff.days*24)
+                latest_time = np.where(i == 0, 0, latest_diff.days)
+                recent_time = np.where(i <=1, 0, recent_diff.days)
                 time_passed = time_passed + latest_time
                 if i+1 < len(time):
                     next_time = datetime.datetime.strptime(time[i+1], "%Y-%m-%d %H:%M:%S") - \
                                 datetime.datetime.strptime(time[i], "%Y-%m-%d %H:%M:%S")
-                    next_time_days = str(int(next_time.days*24))
+                    next_time_days = str(int(next_time.days))
                 else:
-                    next_time_days = str(1*24)
+                    next_time_days = str(1)
                 processed_df.at[idx, "case_id"]  = case
                 processed_df.at[idx, "prefix"]  =  prefix
                 processed_df.at[idx, "k"] = i
