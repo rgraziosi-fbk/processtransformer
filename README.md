@@ -32,6 +32,13 @@ pip install processtransformer
 7. Ensure constants, DATASET_NAME, NUM_TRACES and START_TIMESTAMP are correctly configured in `generate_log.py`
 8. Generate logs: `python generate_log.py`
 
+### Are train/val/test splits temporal or random?
+
+They are temporal because:
+
+- `data_processing.py` accepts an argument `--sort-temporally` that splits between train and test using temporal order
+- `next_activity.py` and `next_time.py` make use of TensorFlow's Model.fit method, with `validation_split` set to 0.25: the validation split, as [per documentation](https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit), is selected from the last x and y samples provided, and is performed before shuffling data.
+
 
 ### Usage  
 We provide the necessary code to use ProcessTransformer with the event logs of your choice. We illustrate the examples using the helpdesk dataset. 
