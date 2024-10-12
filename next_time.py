@@ -85,8 +85,6 @@ if __name__ == "__main__":
         verbose=2, callbacks=[model_checkpoint_callback]) #shuffle=True, 
 
     end_time = time.time()
-    print(f"Training time: {end_time - start_time} seconds")
-
 
 ################# check the k-values #########################################
     # Evaluate over all the prefixes (k) and save the results
@@ -117,3 +115,5 @@ if __name__ == "__main__":
         "mean_squared_error":mses, 
         "root_mean_squared_error":rmses})
     results_df.to_csv(result_path+"_next_time.csv", index=False)
+
+    print(f"Training time: {end_time - start_time} seconds")

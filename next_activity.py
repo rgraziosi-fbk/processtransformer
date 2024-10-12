@@ -87,7 +87,6 @@ if __name__ == "__main__":
         shuffle=True, verbose=2, callbacks=[model_checkpoint_callback])
 
     end_time = time.time()
-    print(f"Training time: {end_time - start_time} seconds")
 
     # Evaluate over all the prefixes (k) and save the results
     k, accuracies,fscores, precisions, recalls = [],[],[],[],[]
@@ -118,3 +117,5 @@ if __name__ == "__main__":
     results_df = pd.DataFrame({"k":k, "accuracy":accuracies, "fscore": fscores, 
         "precision":precisions, "recall":recalls})
     results_df.to_csv(result_path+"_next_activity.csv", index=False)
+
+    print(f"Training time: {end_time - start_time} seconds")
