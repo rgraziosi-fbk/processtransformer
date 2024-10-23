@@ -2,7 +2,7 @@ import os
 import copy
 import datetime
 import pm4py
-import time
+import time as timelib
 import pandas as pd
 import tensorflow as tf
 import numpy as np
@@ -63,7 +63,7 @@ next_time_model = transformer.get_next_time_model(
 )
 next_time_model.load_weights(NEXT_TIME_MODEL_PATH).expect_partial() # load weights, silence warnings
 
-start_time = time.time()
+start_time = timelib.time()
 
 for num_gen in range(NUM_GENERATIONS):
   print(f'Generation #{num_gen+1}')
@@ -170,5 +170,5 @@ for num_gen in range(NUM_GENERATIONS):
 
   print('\n')
 
-end_time = time.time()
+end_time = timelib.time()
 print(f"Generation time: {end_time - start_time} seconds")
