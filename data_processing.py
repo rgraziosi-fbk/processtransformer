@@ -40,17 +40,36 @@ parser.add_argument("--insert_eot",
     default=False, 
     help="insert end of trace token")
 
+parser.add_argument("--filter_by_label",
+    type=str,
+    default=None,
+    help="Train model only on cases with specified label")
+
 args = parser.parse_args()
 
 if __name__ == "__main__": 
     # Process raw logs
     start = time.time()
+
+    columns = ["Case ID", "Activity", "time:timestamp"]
+    if args.filter_by_label is not None:
+        columns.append("label")
+    
     data_processor = LogsDataProcessor(name=args.dataset, 
         filepath=args.raw_log_file, 
-        columns = ["Case ID", "Activity", "time:timestamp"], #["case:concept:name", "concept:name", "time:timestamp"], 
+        columns=columns,
         csv_separator=';',
-        dir_path=args.dir_path, pool = 1, insert_eot=args.insert_eot)
-    data_processor.process_logs(task=args.task, sort_temporally= args.sort_temporally)
+        dir_path=args.dir_path,
+        pool=1,
+        insert_eot=args.insert_eot,
+        filter_by_label=args.filter_by_label,
+    )
+    
+    data_processor.process_logs(
+        task=args.task,
+        sort_temporally=args.sort_temporally,
+    )
+    
     end = time.time()
     print(f"Total processing time: {end - start}")
 

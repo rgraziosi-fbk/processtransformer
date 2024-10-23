@@ -32,6 +32,16 @@ pip install processtransformer
 7. Ensure constants, DATASET_NAME, NUM_TRACES and START_TIMESTAMP are correctly configured in `generate_log.py`
 8. Generate logs: `python generate_log.py`
 
+### Usage for TRANSFORMER_2 method (1 model for each label)
+
+1. In `datasets/next_activity/` create two new folders: `sepsis_deviant` and `sepsis_regular`.
+2. Preprocess deviant data (next activity): `python data_processing.py --dataset=sepsis_deviant --dir_path=./datasets/next_activity --raw_log_file=./datasets/sepsis/sepsis.csv --task=next_activity --filter_by_label=deviant --insert_eot --sort_temporally`
+3. Preprocess regular data (next activity): `python data_processing.py --dataset=sepsis_regular --dir_path=./datasets/next_activity --raw_log_file=./datasets/sepsis/sepsis.csv --task=next_activity --filter_by_label=regular --insert_eot --sort_temporally`
+4. Repeat steps 2 and 3 for next time prediction
+5. Train the next activity model on deviant data: `python next_activity.py --dataset_dir=./datasets/next_activity --dataset=sepsis_deviant --epochs=100`
+6. Train the next activity model on regular data: `python next_activity.py --dataset_dir=./datasets/next_activity --dataset=sepsis_regular --epochs=100`
+7. Repeat steps 5 and 6 for next time prediction
+
 ### Are train/val/test splits temporal or random?
 
 They are temporal because:

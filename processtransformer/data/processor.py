@@ -8,7 +8,7 @@ from multiprocessing import  Pool
 from ..constants import Task
 
 class LogsDataProcessor:
-    def __init__(self, name, filepath, columns, dir_path = "./datasets/processed", pool = 1, csv_separator = ',', insert_eot = False):
+    def __init__(self, name, filepath, columns, dir_path = "./datasets/processed", pool = 1, csv_separator = ',', insert_eot = False, filter_by_label = None):
         """Provides support for processing raw logs.
         Args:
             name: str: Dataset name
@@ -29,12 +29,15 @@ class LogsDataProcessor:
         self._insert_eot = insert_eot
         self._csv_separator = csv_separator
         self._new_activity_name_to_original_activity_name = dict()
+        self.filter_by_label = filter_by_label
 
     def _load_df(self, sort_temporally = False):
         df = pd.read_csv(self._filepath, sep=self._csv_separator)
         df = df[self._org_columns]
-        df.columns = ["case:concept:name", 
-            "concept:name", "time:timestamp"]
+        df_columns = ["case:concept:name", "concept:name", "time:timestamp"]
+        if self.filter_by_label:
+            df_columns.append("label")
+        df.columns = df_columns
         
         # Create mapping from new activity name (lowercase, space replaced with dash, slash replaced with dash) to original activity name
         self._new_activity_name_to_original_activity_name = dict(zip(df["concept:name"].str.lower().str.replace(" ", "-").str.replace("/", "-"), df["concept:name"]))
@@ -211,12 +214,26 @@ class LogsDataProcessor:
 
     def process_logs(self, task, 
         sort_temporally = False, 
-        train_test_ratio = 0.80):
+        train_test_ratio = 0.80,
+    ):
+
         df = self._load_df(sort_temporally)
         self._extract_logs_metadata(df)
+
+        # train-test split
         train_test_ratio = int(abs(df["case:concept:name"].nunique()*train_test_ratio))
         train_list = df["case:concept:name"].unique()[:train_test_ratio]
         test_list = df["case:concept:name"].unique()[train_test_ratio:]
+
+        # filter by label, if present
+        if self.filter_by_label:
+            filtered_df = df[df['label'] == self.filter_by_label]
+            filtered_case_ids = filtered_df['case:concept:name'].unique().tolist()
+
+            # filter train_list and test_list keeping only rows that have a 'case:concept:name' in filtered_case_ids
+            train_list = [case_id for case_id in train_list if case_id in filtered_case_ids]
+            test_list = [case_id for case_id in test_list if case_id in filtered_case_ids]
+            
         if task == Task.NEXT_ACTIVITY:
             self._process_next_activity(df, train_list, test_list)
         elif task == Task.NEXT_TIME:
