@@ -37,10 +37,12 @@ pip install processtransformer
 1. In `datasets/next_activity/` create two new folders: `sepsis_deviant` and `sepsis_regular`.
 2. Preprocess deviant data (next activity): `python data_processing.py --dataset=sepsis_deviant --dir_path=./datasets/next_activity --raw_log_file=./datasets/sepsis/sepsis.csv --task=next_activity --filter_by_label=deviant --insert_eot --sort_temporally`
 3. Preprocess regular data (next activity): `python data_processing.py --dataset=sepsis_regular --dir_path=./datasets/next_activity --raw_log_file=./datasets/sepsis/sepsis.csv --task=next_activity --filter_by_label=regular --insert_eot --sort_temporally`
-4. Repeat steps 2 and 3 for next time prediction
-5. Train the next activity model on deviant data: `python next_activity.py --dataset_dir=./datasets/next_activity --dataset=sepsis_deviant --epochs=100`
-6. Train the next activity model on regular data: `python next_activity.py --dataset_dir=./datasets/next_activity --dataset=sepsis_regular --epochs=100`
-7. Repeat steps 5 and 6 for next time prediction
+4. Preprocess deviant data (next time): `python data_processing.py --dataset=sepsis_deviant --dir_path=./datasets/next_time --raw_log_file=./datasets/sepsis/sepsis.csv --task=next_time --filter_by_label=deviant --insert_eot --sort_temporally`
+5. Preprocess regular data (next time): `python data_processing.py --dataset=sepsis_regular --dir_path=./datasets/next_time --raw_log_file=./datasets/sepsis/sepsis.csv --task=next_time --filter_by_label=regular --insert_eot --sort_temporally`
+6. Train the next activity model on deviant data: `python next_activity.py --dataset_dir=./datasets/next_activity --dataset=sepsis_deviant --epochs=100`
+7. Train the next activity model on regular data: `python next_activity.py --dataset_dir=./datasets/next_activity --dataset=sepsis_regular --epochs=100`
+8. Train the next time model on deviant data: `python next_time.py --dataset_dir=./datasets/next_time --dataset=sepsis_deviant --epochs=100`
+9. Train the next time model on regular data: `python next_time.py --dataset_dir=./datasets/next_time --dataset=sepsis_regular --epochs=100`
 
 ### Are train/val/test splits temporal or random?
 
